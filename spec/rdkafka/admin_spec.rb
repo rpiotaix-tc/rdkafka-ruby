@@ -18,6 +18,7 @@ describe Rdkafka::Admin do
   let(:topic_replication_factor) { 1 }
   let(:topic_config)             { {"cleanup.policy" => "compact", "min.cleanable.dirty.ratio" => 0.8} }
   let(:invalid_topic_config)     { {"cleeeeenup.policee" => "campact"} }
+  let(:group_name)               { "test-group-#{Random.new.rand(0..1_000_000)}" }
 
   describe "#create_topic" do
     describe "called with invalid input" do
@@ -199,6 +200,22 @@ describe Rdkafka::Admin do
 
       expect(delete_topic_report.error_string).to be_nil
       expect(delete_topic_report.result_name).to eq(topic_name)
+    end
+  end
+
+  describe "#delete_group" do
+    describe "called with invalid input" do
+      describe "with the name of a group that does not exist" do
+        it "raises an exception" do
+          delete_group_handle = admin.delete_group(group_name)
+          expect {
+            delete_group_handle.wait(max_wait_timeout: 15.0)
+          }.to raise_exception { |ex|
+            expect(ex).to be_a(Rdkafka::RdkafkaError)
+            expect(ex.message).to match(/Broker: The group id does not exist \(group_id_not_found\)/)
+          }
+        end
+      end
     end
   end
 end
